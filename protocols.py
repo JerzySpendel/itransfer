@@ -2,6 +2,7 @@ import asyncio
 from constants import *
 import hashlib
 from utils import *
+from progress import *
 import os
 
 
@@ -63,6 +64,7 @@ class ClientProtocol(asyncio.Protocol):
         self.size = None
         self.name = None
         self.file = None
+        self.pg = None
         self.transferred = 0
 
     def connection_made(self, transport):
@@ -82,11 +84,13 @@ class ClientProtocol(asyncio.Protocol):
             self.transport.write(SIZE_QUERY)
         elif self.state == 'size':
             self.size = int(data)
+            self.pg = ProgressBar(int(data))
             self.state = 'data'
             self.transport.write(DATA_QUERY)
         elif self.state == 'data':
             if self.transferred < self.size:
-                print('len - {}'.format(len(data)))
+                self.pg.update(len(data))
+                self.pg.info()
                 self.file.write(data)
                 self.transferred += len(data)
                 if self.transferred == self.size:
