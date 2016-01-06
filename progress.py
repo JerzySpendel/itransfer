@@ -14,7 +14,7 @@ class ProgressBar:
         self.time = time.time()
         self.snapshots.append((transferred, dt))
         if len(self.snapshots) >= 500:
-            self.snapshots = self.snapshots[:-1]
+            self.snapshots = self.snapshots[1:]
 
     def average_speed(self):
         t = 0
