@@ -97,10 +97,12 @@ class ClientProtocol(asyncio.Protocol):
                     print('Done!')
                     self.file.flush()
                     self.state = 'done'
+                    if not self.file_valid():
+                        print('SHA1 checksums dont match, failed to download')
                     self.loop.stop()
             self.file.flush()
 
-    def give_me_file(self):
+    def give_me_path(self):
         if self.parsed.download_to:
             if not os.path.exists(self.parsed.download_to):
                 try:
@@ -110,7 +112,7 @@ class ClientProtocol(asyncio.Protocol):
                 except Exception:
                     print('Could not make directory {}'.format(self.parsed.download_to))
                     self.loop.stop()
-            return open(os.path.join(self.parsed.download_to, self.name), 'wb')
+            return os.path.join(self.parsed.download_to, self.name)
         elif self.parsed.download_as:
             if not os.path.exists(os.path.split(self.parsed.download_as)):
                 try:
@@ -119,5 +121,16 @@ class ClientProtocol(asyncio.Protocol):
                     pass
                 except Exception:
                     print('Could not make directory for file {}'.format(self.parsed.download_as))
-            return open(self.parsed.download_as, 'wb')
+            return self.parsed.download_as
 
+    def give_me_file(self):
+        return open(self.give_me_path(), 'wb')
+
+    def file_valid(self):
+        f = open(self.give_me_path(), 'rb')
+        h = hashlib.sha1()
+        chunk = f.read(CHUNK_SIZE)
+        while chunk:
+            h.update(chunk)
+            chunk = f.read(CHUNK_SIZE)
+        return h.hexdigest() == self.hash
